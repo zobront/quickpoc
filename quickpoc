@@ -16,7 +16,8 @@ fi
 
 forge init $folder --no-commit
 cd $folder
-rm -r src
+rm -rf src
+rm -rf script
 
 cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $1
 
