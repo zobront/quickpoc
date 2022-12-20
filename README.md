@@ -4,7 +4,7 @@ easy poc template generation from the command line
 
 ## features
 
-from the command line, call `quickpoc _addr_ _[foldername]_` to generate a ready-to-go sandbox for running POCs against mainnet.
+from the command line, call `quickpoc *addr* *[foldername]*` to generate a ready-to-go sandbox for running POCs against mainnet.
 
 - forge template
 - src/ folder populated with all contracts and libraries
