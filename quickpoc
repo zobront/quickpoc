@@ -1,0 +1,50 @@
+#!/bin/bash
+
+name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${1}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
+folder=$name
+
+if [ $# -ge 2 ]; then
+        folder=$2
+fi
+if [ -d ${folder} ]; then
+    echo "$name folder already exists. Choose another as 2nd arg."
+    exit 1
+fi
+
+forge init $folder --no-commit
+cd $folder
+rm -r src
+
+cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $1
+
+forge remappings > remappings.txt
+for library in $(ls src/${name})
+do
+    if [ $library != contracts ]
+        then
+            echo "${library}/=src/${name}/${library}/" >> remappings.txt
+    fi
+done
+
+rm test/Counter.t.sol
+touch test/POC.t.sol
+
+echo "// SPDX-License-Identifier: MIT" >> test/POC.t.sol
+echo "pragma solidity ^0.8.0;" >> test/POC.t.sol
+echo "" >> test/POC.t.sol
+echo 'import "forge-std/Test.sol";' >> test/POC.t.sol
+for file in $(ls src/${name}/contracts)
+do
+    echo "import \"../src/$name/contracts/$file\";" >> test/POC.t.sol
+done
+echo "" >> test/POC.t.sol
+echo "contract ${name}POC is Test {" >> test/POC.t.sol
+echo "  ${name} c = ${name}($1);" >> test/POC.t.sol
+echo "" >> test/POC.t.sol
+echo "  function test${name}POC() public {" >> test/POC.t.sol
+echo "      vm.createSelectFork('${ETH_RPC_URL}');" >> test/POC.t.sol
+echo "      assert(address(c) == $1);" >> test/POC.t.sol
+echo "  }" >> test/POC.t.sol
+echo "}" >> test/POC.t.sol
+
+echo "cd ${name}" | pbcopy 
