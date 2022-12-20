@@ -3,11 +3,14 @@
 name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${1}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
 folder=$name
 
-if [ $# -ge 2 ]; then
-        folder=$2
+if [ $# -gt 2 ]; then
+    echo "error: max 2 arguments allowed"
+    exit 1
+elif [ $# -eq 2 ]; then
+    folder=$2
 fi
 if [ -d ${folder} ]; then
-    echo "$name folder already exists. Choose another as 2nd arg."
+    echo "error: already folder named $name - enter a custom name as a second arg"
     exit 1
 fi
 
