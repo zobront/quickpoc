@@ -36,5 +36,6 @@ note: you must be running a UNIX based machine with `bash`, `forge`, `cast`, and
 
 - [ ] support non-mainnet networks
 - [ ] allow inputting multiple addresses
+- [ ] automatically pull all contracts listed on an immunefi page
 
 please submit issues for any additional features you'd like to see :)
