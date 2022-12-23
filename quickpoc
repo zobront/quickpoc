@@ -17,8 +17,6 @@ checkCommandExists forge
 checkCommandExists cast
 checkCommandExists curl
 
-set -x
-
 if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
    printUsage
    exit 1
