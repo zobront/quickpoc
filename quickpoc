@@ -1,5 +1,41 @@
 #!/bin/bash
 
+printUsage () {
+   echo "Usage: $0 <contract-name> [<folder-name>]"
+}
+
+# param 1 - command to check
+checkCommandExists () {
+   if ! command -v $1 > /dev/null ; then
+      echo "Command $1 not found, please delete it before using this tool"
+      exit 1
+   fi
+}
+
+checkCommandExists jq
+checkCommandExists forge
+checkCommandExists cast
+checkCommandExists curl
+
+set -x
+
+if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
+   printUsage
+   exit 1
+fi
+
+echo "$ETHERSCAN_API_KEY"
+
+if [ -z "$ETHERSCAN_API_KEY" ]; then
+   echo "Please set ETHERSCAN_API_KEY variable"
+   exit 1
+fi
+
+if [ -z "$ETH_RPC_URL" ]; then
+   echo "Please set ETH_RPC_URL variable"
+   exit 1
+fi
+
 name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${1}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
 folder=$name
 
@@ -33,22 +69,28 @@ done
 rm test/Counter.t.sol
 touch test/POC.t.sol
 
-echo "// SPDX-License-Identifier: MIT" >> test/POC.t.sol
-echo "pragma solidity ^0.8.0;" >> test/POC.t.sol
-echo "" >> test/POC.t.sol
-echo 'import "forge-std/Test.sol";' >> test/POC.t.sol
+cat << EOF >> test/POC.t.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+EOF
+
 for file in $(ls src/${name}/contracts)
 do
     echo "import \"../src/$name/contracts/$file\";" >> test/POC.t.sol
 done
-echo "" >> test/POC.t.sol
-echo "contract ${name}POC is Test {" >> test/POC.t.sol
-echo "  ${name} c = ${name}($1);" >> test/POC.t.sol
-echo "" >> test/POC.t.sol
-echo "  function test${name}POC() public {" >> test/POC.t.sol
-echo "      vm.createSelectFork('${ETH_RPC_URL}');" >> test/POC.t.sol
-echo "      assert(address(c) == $1);" >> test/POC.t.sol
-echo "  }" >> test/POC.t.sol
-echo "}" >> test/POC.t.sol
+
+cat << EOF >> test/POC.t.sol
+
+contract ${name}POC is Test {
+  ${name} c = ${name}($1);
+
+  function test${name}POC() public {
+      vm.createSelectFork('${ETH_RPC_URL}');
+      assert(address(c) == $1);
+  }
+}
+EOF
 
 echo "cd ${name}" | pbcopy 
