@@ -39,3 +39,7 @@ note: you must be running a UNIX based machine with `bash`, `forge`, `cast`, and
 - [ ] automatically pull all contracts listed on an immunefi page
 
 please submit issues for any additional features you'd like to see :)
+
+## thank yous
+
+big thanks to [deliriusz](https://github.com/deliriusz) for adding graphic tools, proxy checks, and professionalism. 
