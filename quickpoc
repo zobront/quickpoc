@@ -24,6 +24,9 @@ checkCommandExists jq
 checkCommandExists forge
 checkCommandExists cast
 checkCommandExists curl
+checkCommandExists surya
+checkCommandExists dot
+checkCommandExists sol2uml
 
 if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
    printUsage
@@ -40,7 +43,7 @@ if [ -z "$ETH_RPC_URL" ]; then
    exit 1
 fi
 
-# ====== MAIN LOGIC =====
+# ====== SETUP POC =====
 
 proxy_impl=$(cast --abi-decode "sig()(address)"  $(cast storage $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc))
 
@@ -108,5 +111,16 @@ contract ${name}POC is Test {
   }
 }
 EOF
+
+# ===== GRAPHING =====
+
+mkdir assets
+
+LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
+surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
+sol2uml class -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-UML.svg $logic_contract
+sol2uml storage -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-storage.svg $logic_contract
+
+# ===== MISC =====
 
 echo "cd ${name}" | pbcopy 
