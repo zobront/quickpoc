@@ -42,4 +42,4 @@ please submit issues for any additional features you'd like to see :)
 
 ## thank yous
 
-big thanks to [deliriusz](https://github.com/deliriusz) for adding graphic tools, proxy checks, and professionalism. 
+big thanks to [deliriusz](https://github.com/deliriusz) for adding graph viz tools, proxy checks, and professionalism. 
