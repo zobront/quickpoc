@@ -95,9 +95,9 @@ pragma solidity ^0.8.0;
 import "forge-std/Test.sol";
 EOF
 
-for file in $(ls src/${name}/contracts)
+for file in $(find src/${name}/contracts -name '*.sol')
 do
-    echo "import \"../src/$name/contracts/$file\";" >> test/POC.t.sol
+    echo "import \"../$file\";" >> test/POC.t.sol
 done
 
 cat << EOF >> test/POC.t.sol
