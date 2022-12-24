@@ -1,5 +1,11 @@
 #!/bin/bash
 
+#===== VARIABLES ======
+
+ZERO_ADDRESS=0x0000000000000000000000000000000000000000
+
+# ===== FUNCTIONS ======
+
 printUsage () {
    echo "Usage: $0 <contract-name> [<folder-name>]"
 }
@@ -11,6 +17,8 @@ checkCommandExists () {
       exit 1
    fi
 }
+
+# ====== CHECKS ======
 
 checkCommandExists jq
 checkCommandExists forge
@@ -32,7 +40,19 @@ if [ -z "$ETH_RPC_URL" ]; then
    exit 1
 fi
 
-name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${1}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
+# ====== MAIN LOGIC =====
+
+proxy_impl=$(cast --abi-decode "sig()(address)"  $(cast storage $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc))
+
+if [ proxy_impl == ZERO_ADDRESS ] ; then
+   logic_contract=$1
+   data_contract=$1
+else
+   logic_contract=$proxy_impl
+   data_contract=$1
+fi
+
+name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
 folder=$name
 
 if [ $# -gt 2 ]; then
@@ -51,7 +71,7 @@ cd $folder
 rm -rf src
 rm -rf script
 
-cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $1
+cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $logic_contract
 
 forge remappings > remappings.txt
 for library in $(ls src/${name})
@@ -80,11 +100,11 @@ done
 cat << EOF >> test/POC.t.sol
 
 contract ${name}POC is Test {
-  ${name} c = ${name}($1);
+  ${name} c = ${name}($data_contract);
 
   function test${name}POC() public {
       vm.createSelectFork('${ETH_RPC_URL}');
-      assert(address(c) == $1);
+      assert(address(c) == $data_contract);
   }
 }
 EOF
