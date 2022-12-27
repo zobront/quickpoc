@@ -47,7 +47,7 @@ fi
 
 proxy_impl=$(cast --abi-decode "sig()(address)"  $(cast storage $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc))
 
-if [ proxy_impl == ZERO_ADDRESS ] ; then
+if [ proxy_impl == "$ZERO_ADDRESS" ] ; then
    logic_contract=$1
    data_contract=$1
 else
