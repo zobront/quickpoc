@@ -6,8 +6,18 @@ ZERO_ADDRESS=0x0000000000000000000000000000000000000000
 
 # ===== FUNCTIONS ======
 
+printHelp () {
+   echo "Options:"
+   echo -e "-n, --network \t\t network name supported by cast. Default: mainnet"
+   echo -e "-u, --rpc-url \t\t simulation RPC URL"
+   echo -e "-c, --config \t\t API keys config file. Default: ./conf"
+   echo -e "-k, --key \t\t block explorer API key. Default: etherscan API key"
+   echo -e "-o, --output \t\t output folder. Default: out"
+   echo -e "-h, --help, ? \t\t print this help message"
+}
+
 printUsage () {
-   echo "Usage: $0 <contract-name> [<folder-name>]"
+   echo "Usage: $0 [OPTION]... [CONTRACT-ADDRESS]..."
 }
 
 # param 1 - command to check
@@ -28,26 +38,159 @@ checkCommandExists surya
 checkCommandExists dot
 checkCommandExists sol2uml
 
+# ===== ITERATING OVER ARGS =====
+
+POSITIONAL_ARGS=()
+NETWORK=mainnet
+CONFIG_FILE="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/conf"
+OUTPUT_FOLDER=out
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -n|--network)
+      NETWORK="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -c|--config)
+      CONFIG_FILE="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -u|--rpc-url)
+      RPC_URL="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -k|--key)
+      BLOCK_EXPLORER_API_KEY="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -h|--help|?)
+      printUsage
+      printHelp
+      exit 0
+      ;;
+    -o|--output)
+      OUTPUT_FOLDER="$2"
+      shift # past argument
+      shift # past value
+      ;;
+#    --default) # example of how to add single param options
+#      DEFAULT=YES
+#      shift # past argument
+#      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+source $CONFIG_FILE # load user config
+
+# ===== CHAIN CONFIG =====
+
+declare -A NETWORK_TO_URL
+declare -A NETWORK_TO_KEY
+declare -A NETWORK_TO_SOL2UML
+
+NETWORK_TO_URL["mainnet"]="https://api.etherscan.io/api"
+NETWORK_TO_URL["ropsten"]="https://api-ropsten.etherscan.io/api"
+NETWORK_TO_URL["rinkeby"]="https://api-rinkeby.etherscan.io/api"
+NETWORK_TO_URL["goerli"]="https://api-goerli.etherscan.io/api"
+NETWORK_TO_URL["kovan"]="https://api-kovan.etherscan.io/api"
+NETWORK_TO_URL["bsc"]="https://api.bscscan.com/api"
+NETWORK_TO_URL["bsc-testnet"]="https://api-testnet.bscscan.com/api"
+NETWORK_TO_URL["fantom"]="https://api.ftmscan.com/api"
+NETWORK_TO_URL["fantom-testnet"]="https://api-testnet.ftmscan.com/api"
+NETWORK_TO_URL["optimism"]="https://api-optimistic.etherscan.io/api"
+NETWORK_TO_URL["optimism-kovan"]="https://api-kovan-optimistic.etherscan.io/api"
+NETWORK_TO_URL["polygon"]="https://api.polygonscan.com/api"
+NETWORK_TO_URL["polygon-mumbai"]="https://api-testnet.polygonscan.com/api"
+NETWORK_TO_URL["arbitrum"]="https://api.arbiscan.io/api"
+NETWORK_TO_URL["arbitrum-testnet"]="https://api-testnet.arbiscan.io/api"
+NETWORK_TO_URL["avalanche"]="https://api.snowtrace.io/api"
+NETWORK_TO_URL["avalanche-fuji"]="https://api-testnet.snowtrace.io/api"
+NETWORK_TO_URL["cronos"]="https://api.cronoscan.com/api"
+NETWORK_TO_URL["moonbeam"]='https://api-moonbeam.moonscan.io/api'
+NETWORK_TO_URL["aurora"]='https://api.aurorascan.dev/api'
+
+NETWORK_TO_KEY["mainnet"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["ropsten"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["rinkeby"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["goerli"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["kovan"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["optimism"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["optimism-kovan"]=$ETHERSCAN_KEY
+NETWORK_TO_KEY["arbitrum"]=$ARBISCAN_KEY
+NETWORK_TO_KEY["arbitrum-testnet"]=$ARBISCAN_KEY
+NETWORK_TO_KEY["bsc"]=$BSCSCAN_KEY
+NETWORK_TO_KEY["bsc-testnet"]=$BSCSCAN_KEY
+NETWORK_TO_KEY["fantom"]=$FTMSCAN_KEY
+NETWORK_TO_KEY["fantom-testnet"]=$FTMSCAN_KEY
+NETWORK_TO_KEY["polygon"]=$POLYGONSCAN_KEY
+NETWORK_TO_KEY["polygon-mumbai"]=$POLYGONSCAN_KEY
+NETWORK_TO_KEY["avalanche"]=$SNOWTRACE_KEY
+NETWORK_TO_KEY["avalanche-fuji"]=$SNOWTRACE_KEY
+NETWORK_TO_KEY["cronos"]=$CRONOSCAN_KEY
+NETWORK_TO_KEY["moonbeam"]=$MOONBEAM_KEY
+NETWORK_TO_KEY["aurora"]=$AURORA_KEY
+
+NETWORK_TO_SOL2UML["mainnet"]="mainnet"
+NETWORK_TO_SOL2UML["ropsten"]="ropsten"
+NETWORK_TO_SOL2UML["rinkeby"]="rinkeby"
+NETWORK_TO_SOL2UML["goerli"]="goerli"
+NETWORK_TO_SOL2UML["kovan"]="kovan"
+NETWORK_TO_SOL2UML["bsc"]="bsc"
+NETWORK_TO_SOL2UML["bsc-testnet"]="bsc.testnet"
+NETWORK_TO_SOL2UML["fantom"]="fantom"
+NETWORK_TO_SOL2UML["fantom-testnet"]="testnet.fantom"
+NETWORK_TO_SOL2UML["optimism"]="optimistic"
+NETWORK_TO_SOL2UML["optimism-kovan"]="kovan-optimistic"
+NETWORK_TO_SOL2UML["polygon"]="polygon"
+NETWORK_TO_SOL2UML["polygon-mumbai"]="testnet.polygon"
+NETWORK_TO_SOL2UML["arbitrum"]="arbitrum"
+NETWORK_TO_SOL2UML["arbitrum-testnet"]="testnet.arbitrum"
+NETWORK_TO_SOL2UML["avalanche"]="avalanche"
+NETWORK_TO_SOL2UML["avalanche-fuji"]="testnet.avalanche"
+NETWORK_TO_SOL2UML["cronos"]="crono"
+NETWORK_TO_SOL2UML["moonbeam"]="moonbeam"
+#NETWORK_TO_SOL2UML["aurora"]="" # not supported for sol2uml
+
+# ===== CHECKS =====
+
+if [ -z "$BLOCK_EXPLORER_API_KEY" ]; then
+   BLOCK_EXPLORER_API_KEY=${NETWORK_TO_KEY[$NETWORK]}
+
+   if [ -z "$BLOCK_EXPLORER_API_KEY" ]; then
+      echo "Unknown network passed. Please refer to cast documentation for a list of supported chains."
+      exit 1
+   fi
+fi
+
+if [ -z "${NETWORK_TO_RPC_URL[$NETWORK]}" ]; then
+   echo -e "\nWarning. You don't have $NETWORK RPC URL specified in $CONFIG_FILE. It will be set to empty in a POC test file. Please add it manually later\n"
+fi
+
 if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
    printUsage
    exit 1
 fi
 
-if [ -z "$ETHERSCAN_API_KEY" ]; then
-   echo "Please set ETHERSCAN_API_KEY variable"
-   exit 1
-fi
-
-if [ -z "$ETH_RPC_URL" ]; then
-   echo "Please set ETH_RPC_URL variable"
-   exit 1
-fi
-
 # ====== SETUP POC =====
 
-proxy_impl=$(cast --abi-decode "sig()(address)"  $(cast storage $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc))
+proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
 
-if [ proxy_impl == ZERO_ADDRESS ] ; then
+if [ $proxy_impl == $ZERO_ADDRESS ] ; then
    logic_contract=$1
    data_contract=$1
 else
@@ -55,7 +198,7 @@ else
    data_contract=$1
 fi
 
-name=$(curl -s --location --request GET "https://api.etherscan.io/api?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${ETHERSCAN_API_KEY}" | jq -r '.result'[0].ContractName)
+name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
 folder=$name
 
 if [ $# -gt 2 ]; then
@@ -74,7 +217,7 @@ cd $folder
 rm -rf src
 rm -rf script
 
-cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $logic_contract
+cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $logic_contract
 
 forge remappings > remappings.txt
 for library in $(ls src/${name})
@@ -102,11 +245,14 @@ done
 
 cat << EOF >> test/POC.t.sol
 
+// Foundry cheatsheet: https://github.com/foundry-rs/foundry/blob/master/forge/README.md#cheat-codes
+// Foundry doc: https://book.getfoundry.sh
+
 contract ${name}POC is Test {
   ${name} c = ${name}($data_contract);
 
   function test${name}POC() public {
-      vm.createSelectFork('${ETH_RPC_URL}');
+      vm.createSelectFork('${NETWORK_TO_RPC_URL[$NETWORK]}');
       assert(address(c) == $data_contract);
   }
 }
@@ -118,9 +264,14 @@ mkdir assets
 
 LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
 surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
-sol2uml class -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-UML.svg $logic_contract
-sol2uml storage -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-storage.svg $logic_contract
 
-# ===== MISC =====
+if [ -z "${NETWORK_TO_SOL2UML[$NETWORK]}" ]; then
+   echo "Sol2UML is not supported for $NETWORK. Storage layout and class diagram won't be created"
+else
+   sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $logic_contract
+   sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $logic_contract
+fi
+
+# ===== COPY NAME =====
 
 echo "cd ${name}" | pbcopy 

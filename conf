@@ -1,0 +1,35 @@
+# This is the config file with default block explorers keys. You are meant to override those config with your own settings
+
+# the config below is taken from great open source tool ehtereum-sources-downloader: https://github.com/SergeKireev/ethereum-sources-downloader/blob/main/src/explorer/networks.ts
+ETHERSCAN_KEY="862Y3WJ4JB4B34PZQRFEV3IK6SZ8GNR9N5"
+BSCSCAN_KEY="HFUM7BBA5MRUQCN5UMEQPUZBUPPRHIQT3Y"
+FTMSCAN_KEY="EH9NPZVF1HMNAQMAUZKA4VF7EC23X37DGS"
+SNOWTRACE_KEY="IQEHAJ43W674REN5XV79WF47X37VEB8PIC"
+ARBISCAN_KEY="X3ZWJBXC14HTIR3B9DNYGEUICEIKKZ9ENZ"
+POLYGONSCAN_KEY="RV4YXDXEMIHXMC7ZXB8T82G4F56FRZ1SZQ"
+CRONOSCAN_KEY="BGAN1CWT8E1A2XRS3FU61UP7XXFMHBWNSY"
+MOONBEAM_KEY="FENPKQI49RF2P916SQ2J58BTDMU69PQY8Y"
+AURORA_KEY="F2JS84SQHM53V4T3AN2CSX6ZHUAXFSHJ8Y"
+
+declare -A NETWORK_TO_RPC_URL
+
+NETWORK_TO_RPC_URL["mainnet"]=""
+NETWORK_TO_RPC_URL["ropsten"]=""
+NETWORK_TO_RPC_URL["rinkeby"]=""
+NETWORK_TO_RPC_URL["goerli"]=""
+NETWORK_TO_RPC_URL["kovan"]=""
+NETWORK_TO_RPC_URL["bsc"]=""
+NETWORK_TO_RPC_URL["bsc-testnet"]=""
+NETWORK_TO_RPC_URL["fantom"]=""
+NETWORK_TO_RPC_URL["fantom-testnet"]=""
+NETWORK_TO_RPC_URL["optimism"]=""
+NETWORK_TO_RPC_URL["optimism-kovan"]=""
+NETWORK_TO_RPC_URL["polygon"]=""
+NETWORK_TO_RPC_URL["polygon-mumbai"]=""
+NETWORK_TO_RPC_URL["arbitrum"]=""
+NETWORK_TO_RPC_URL["arbitrum-testnet"]=""
+NETWORK_TO_RPC_URL["avalanche"]=""
+NETWORK_TO_RPC_URL["avalanche-fuji"]=""
+NETWORK_TO_RPC_URL["cronos"]=""
+NETWORK_TO_RPC_URL["moonbeam"]=""
+NETWORK_TO_RPC_URL["aurora"]=""
