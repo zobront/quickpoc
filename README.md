@@ -39,7 +39,7 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 ## future
 
 - [x] support non-mainnet networks
-- [ ] allow inputting multiple addresses
+- [x] allow inputting multiple addresses
 - [ ] automatically pull all contracts listed on an immunefi page
 
 please submit issues for any additional features you'd like to see :)
