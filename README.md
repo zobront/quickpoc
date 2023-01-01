@@ -17,7 +17,12 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 
 ## install
 
-note: you must be running a UNIX based machine with `bash`, `forge`, `cast`, and `jq` installed.
+0) on a UNIX machine with bash installed, install all dependencies:
+- foundry ([follow instructions here](https://github.com/foundry-rs/foundry))
+- jq (`brew install jq`)
+- graphviz (`brew install graphviz`)
+- surya (`npm i -g surya`)
+- sol2uml (`npm i -g sol2uml`)
 
 1) download the `quickpoc` file from this repo.
 
