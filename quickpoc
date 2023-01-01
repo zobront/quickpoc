@@ -28,6 +28,102 @@ checkCommandExists () {
    fi
 }
 
+# has to be called after all config is resolved
+# param 1 - contract address
+# param 2 - folder name
+downloadSmartContract () {
+   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+   proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
+
+   if [ $proxy_impl == $ZERO_ADDRESS ] ; then
+      logic_contract=$1
+      data_contract=$1
+   else
+      logic_contract=$proxy_impl
+      data_contract=$1
+   fi
+
+   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
+
+   if [ -z $2 ]; then
+      folder=$name
+   else
+      folder=$2
+   fi
+
+   if [ -d ${folder} ]; then
+      echo "error: already folder named $name - enter a custom name as a second arg"
+      exit 1
+   fi
+
+   forge init $folder --no-commit
+   cd $folder
+   rm -rf src
+   rm -rf script
+
+   cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $logic_contract
+
+   forge remappings > remappings.txt
+   for library in $(ls src/${name})
+   do
+      if [ $library != contracts ]
+      then
+         echo "${library}/=src/${name}/${library}/" >> remappings.txt
+      fi
+   done
+
+   rm test/Counter.t.sol
+   touch test/POC.t.sol
+
+   cat << EOF >> test/POC.t.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+EOF
+
+   for file in $(find src/${name}/contracts -name '*.sol')
+   do
+      echo "import \"../$file\";" >> test/POC.t.sol
+   done
+
+   cat << EOF >> test/POC.t.sol
+
+// Foundry cheatsheet: https://github.com/foundry-rs/foundry/blob/master/forge/README.md#cheat-codes
+// Foundry doc: https://book.getfoundry.sh
+
+contract ${name}POC is Test {
+   ${name} c = ${name}($data_contract);
+
+   function test${name}POC() public {
+      vm.createSelectFork('${NETWORK_TO_RPC_URL[$NETWORK]}');
+      assert(address(c) == $data_contract);
+   }
+}
+EOF
+
+   cd ..
+}
+
+# has to be called after all config is resolved
+# it's assumed that it's called after `downloadSmartContract` function and "name" is set
+function graphSmartContract () {
+   cd $folder
+   mkdir assets
+
+   LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
+   surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
+
+   if [ -z "${NETWORK_TO_SOL2UML[$NETWORK]}" ]; then
+      echo "Sol2UML is not supported for $NETWORK. Storage layout and class diagram won't be created"
+   else
+      sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $logic_contract
+      sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $logic_contract
+   fi
+
+   cd ..
+}
+
 # ====== CHECKS ======
 
 checkCommandExists jq
@@ -180,97 +276,28 @@ if [ -z "${NETWORK_TO_RPC_URL[$NETWORK]}" ]; then
    echo -e "\nWarning. You don't have $NETWORK RPC URL specified in $CONFIG_FILE. It will be set to empty in a POC test file. Please add it manually later\n"
 fi
 
-if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
-   printUsage
-   exit 1
-fi
 
-# ====== SETUP POC =====
+# ===== ITERATE OVER PARAMS =====
 
-proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
-proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
-
-if [ $proxy_impl == $ZERO_ADDRESS ] ; then
-   logic_contract=$1
-   data_contract=$1
+if [ $# -gt 1 ]; then
+   mkdir $OUTPUT_FOLDER
+   cd $OUTPUT_FOLDER
 else
-   logic_contract=$proxy_impl
-   data_contract=$1
-fi
+   RENAME_FOLDER=$OUTPUT_FOLDER
+fi 
 
-name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
-folder=$name
-
-if [ $# -gt 2 ]; then
-    echo "error: max 2 arguments allowed"
-    exit 1
-elif [ $# -eq 2 ]; then
-    folder=$2
-fi
-if [ -d ${folder} ]; then
-    echo "error: already folder named $name - enter a custom name as a second arg"
-    exit 1
-fi
-
-forge init $folder --no-commit
-cd $folder
-rm -rf src
-rm -rf script
-
-cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $logic_contract
-
-forge remappings > remappings.txt
-for library in $(ls src/${name})
+for CONTRACT in $@
 do
-    if [ $library != contracts ]
-        then
-            echo "${library}/=src/${name}/${library}/" >> remappings.txt
-    fi
+   if [ "${CONTRACT:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
+      echo "Unexpected param. Expected contract address (0x...)"
+      exit 1
+   fi
+   echo "Working on $CONTRACT"
+
+   downloadSmartContract $CONTRACT $RENAME_FOLDER
+   graphSmartContract
 done
 
-rm test/Counter.t.sol
-touch test/POC.t.sol
-
-cat << EOF >> test/POC.t.sol
-// SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
-
-import "forge-std/Test.sol";
-EOF
-
-for file in $(find src/${name}/contracts -name '*.sol')
-do
-    echo "import \"../$file\";" >> test/POC.t.sol
-done
-
-cat << EOF >> test/POC.t.sol
-
-// Foundry cheatsheet: https://github.com/foundry-rs/foundry/blob/master/forge/README.md#cheat-codes
-// Foundry doc: https://book.getfoundry.sh
-
-contract ${name}POC is Test {
-  ${name} c = ${name}($data_contract);
-
-  function test${name}POC() public {
-      vm.createSelectFork('${NETWORK_TO_RPC_URL[$NETWORK]}');
-      assert(address(c) == $data_contract);
-  }
-}
-EOF
-
-# ===== GRAPHING =====
-
-mkdir assets
-
-LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
-surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
-
-if [ -z "${NETWORK_TO_SOL2UML[$NETWORK]}" ]; then
-   echo "Sol2UML is not supported for $NETWORK. Storage layout and class diagram won't be created"
-else
-   sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $logic_contract
-   sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $logic_contract
-fi
 
 # ===== COPY NAME =====
 
