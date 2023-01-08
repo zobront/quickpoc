@@ -96,7 +96,7 @@ contract ${name}POC is Test {
    ${name} c = ${name}($data_contract);
 
    function test${name}POC() public {
-      vm.createSelectFork('${NETWORK_TO_RPC_URL[$NETWORK]}');
+      vm.createSelectFork('${RPC_URL}');
       assert(address(c) == $data_contract);
    }
 }
@@ -272,8 +272,12 @@ if [ -z "$BLOCK_EXPLORER_API_KEY" ]; then
    fi
 fi
 
-if [ -z "${NETWORK_TO_RPC_URL[$NETWORK]}" ]; then
-   echo -e "\nWarning. You don't have $NETWORK RPC URL specified in $CONFIG_FILE. It will be set to empty in a POC test file. Please add it manually later\n"
+if [ -z "$RPC_URL" ]; then
+   if [ -z "${NETWORK_TO_RPC_URL[$NETWORK]}" ]; then
+      echo -e "\nWarning. You don't have $NETWORK RPC URL specified in $CONFIG_FILE nor input parameter. It will be set to empty in a POC test file. Please add it manually later\n"
+   else
+      RPC_URL="${NETWORK_TO_RPC_URL[$NETWORK]}" 
+   fi
 fi
 
 
