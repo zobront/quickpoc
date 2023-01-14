@@ -75,6 +75,9 @@ rm -rf src
 rm -rf script
 
 cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $logic_contract
+cast interface -o test/${name}_interface.sol --etherscan-api-key $ETHERSCAN_API_KEY $logic_contract
+
+
 
 forge remappings > remappings.txt
 for library in $(ls src/${name})
