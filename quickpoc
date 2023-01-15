@@ -32,18 +32,9 @@ checkCommandExists () {
 # param 1 - contract address
 # param 2 - folder name
 downloadSmartContract () {
-   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
-   proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
+   contract_address=$1
 
-   if [ $proxy_impl == $ZERO_ADDRESS ] ; then
-      logic_contract=$1
-      data_contract=$1
-   else
-      logic_contract=$proxy_impl
-      data_contract=$1
-   fi
-
-   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
+   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${contract_address}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
 
    if [ -z $2 ]; then
       folder=$name
@@ -58,10 +49,11 @@ downloadSmartContract () {
 
    forge init $folder --no-commit
    cd $folder
-   rm -rf src
    rm -rf script
+   rm -rf src
+   rm test/Counter.t.sol
 
-   cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $logic_contract
+   cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $contract_address
 
    forge remappings > remappings.txt
    for library in $(ls src/${name})
@@ -72,8 +64,6 @@ downloadSmartContract () {
       fi
    done
 
-   rm test/Counter.t.sol
-   touch test/POC.t.sol
 
    cat << EOF >> test/POC.t.sol
 // SPDX-License-Identifier: MIT
@@ -117,8 +107,8 @@ function graphSmartContract () {
    if [ -z "${NETWORK_TO_SOL2UML[$NETWORK]}" ]; then
       echo "Sol2UML is not supported for $NETWORK. Storage layout and class diagram won't be created"
    else
-      sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $logic_contract
-      sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $logic_contract
+      sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $contract_address
+      sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $contract_address
    fi
 
    cd ..
@@ -214,12 +204,8 @@ fi
 
 # ===== ITERATE OVER PARAMS =====
 
-if [ $# -gt 1 ]; then
-   mkdir $OUTPUT_FOLDER
-   cd $OUTPUT_FOLDER
-else
-   RENAME_FOLDER=$OUTPUT_FOLDER
-fi 
+mkdir $OUTPUT_FOLDER
+cd $OUTPUT_FOLDER
 
 for CONTRACT in $@
 do
@@ -229,8 +215,27 @@ do
    fi
    echo "Working on $CONTRACT"
 
-   downloadSmartContract $CONTRACT $RENAME_FOLDER
+   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+   proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
+
+   if [ $proxy_impl == $ZERO_ADDRESS ] ; then
+      logic_contract=$1
+      data_contract=$1
+   else
+      logic_contract=$proxy_impl
+      data_contract=$1
+   fi
+
+   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
+
+   downloadSmartContract $logic_contract $name
    graphSmartContract
+
+   if [ $logic_contract != $data_contract ]; then # if it's proxy contract, get it's code as well
+      name="$name-proxy"
+      downloadSmartContract $data_contract $name
+      graphSmartContract
+   fi
 done
 
 
