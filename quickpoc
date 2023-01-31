@@ -204,7 +204,7 @@ fi
 
 # ===== ITERATE OVER PARAMS =====
 
-mkdir $OUTPUT_FOLDER
+mkdir -p $OUTPUT_FOLDER
 cd $OUTPUT_FOLDER
 
 for CONTRACT in $@
@@ -215,7 +215,11 @@ do
    fi
    echo "Working on $CONTRACT"
 
-   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+   # For some chains like BSC, it's possible that cast will, for some reason, return false results.
+   # Passing a reliable RPC_URL (if one exists in config) solves this problem.
+   [[ ! -z "$RPC_URL" ]] && CAST_RPC_OVERRIDE="--rpc-url $RPC_URL" 
+
+   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $CAST_RPC_OVERRIDE $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
    proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
 
    if [ $proxy_impl == $ZERO_ADDRESS ] ; then
