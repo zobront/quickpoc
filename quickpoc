@@ -92,6 +92,9 @@ contract ${name}POC is Test {
 }
 EOF
 
+   git add . > /dev/null
+   git commit -m 'initial setup' > /dev/null
+
    cd ..
 }
 
@@ -110,6 +113,9 @@ function graphSmartContract () {
       sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $contract_address
       sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $contract_address
    fi
+
+   git add . > /dev/null > /dev/null
+   git commit -m 'adding graphs' > /dev/null
 
    cd ..
 }
