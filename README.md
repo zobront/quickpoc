@@ -23,6 +23,7 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 - graphviz (`brew install graphviz`)
 - surya (`npm i -g surya`)
 - sol2uml (`npm i -g sol2uml`)
+- bash v4.0+
 
 1) download the `quickpoc` file from this repo.
 
@@ -35,6 +36,13 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 - if this folder isn't already in your path, open your bash run control file (for example, `~/.zshrc`) and add the following line: `export PATH="$PATH:/Users/path_to_folder_holding_file`
 - call `chmod +x path_to_file` to make the file executable
 - you should then be able to call `quickpoc` from any folder to generate the POC folder within it.
+
+## troubleshooting
+### unknown option: -A
+Macs ship with bash v3.2 due to licensing. It was released in 2007 and lacks many modern features. This tool requires associative arrays that were introduced in v4.0. In order to fix this issue, please install most recent bash version:
+`brew install bash`
+
+This does not break anything on existing installations, as brew installs bash in user space, and /bin/bash is still default option.
 
 ## future
 
