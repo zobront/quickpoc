@@ -1,10 +1,10 @@
-# quickpoc
+# turbopoc
 
-easy POC template generation from the command line
+A multichain smart contract POC template generation from the command line. This is more advanced, yet more complicated fork of great `zobront/quickpoc` tool.
 
 ## features
 
-from the command line, call `quickpoc [OPTIONS]... [CONTRACT-ADDRESSES]...` to generate a ready-to-go sandbox for running POCs for the given address against multiple EVM chains, including:
+from the command line, call `turbopoc [OPTIONS]... [CONTRACT-ADDRESSES]...` to generate a ready-to-go sandbox for running POCs for the given address against multiple EVM chains, including:
 
 - forge template with name mirroring contract name
 - `src/` folder populated with all contracts and libraries
@@ -25,17 +25,17 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 - sol2uml (`npm i -g sol2uml`)
 - bash v4.0+
 
-1) download the `quickpoc` file from this repo.
+1) download the `turbopoc` file from this repo.
 
 2) set up your block explorer API keys and RPC URL for mainnet simulation in `conf` file
 
-3) you can then run it directly by calling the file (`./quickpoc`) 
+3) you can then run it directly by calling the file (`./turbopoc`) 
 
 4) more conveniently, install it globally:
 - put it somewhere you won't touch it (usually `~/bin`)
 - if this folder isn't already in your path, open your bash run control file (for example, `~/.zshrc`) and add the following line: `export PATH="$PATH:/Users/path_to_folder_holding_file`
 - call `chmod +x path_to_file` to make the file executable
-- you should then be able to call `quickpoc` from any folder to generate the POC folder within it.
+- you should then be able to call `turbopoc` from any folder to generate the POC folder within it.
 
 ## troubleshooting
 ### unknown option: -A
@@ -51,7 +51,3 @@ This does not break anything on existing installations, as brew installs bash in
 - [ ] automatically pull all contracts listed on an immunefi page
 
 please submit issues for any additional features you'd like to see :)
-
-## thank yous
-
-big thanks to [deliriusz](https://github.com/deliriusz) for adding graph viz tools, proxy checks, and professionalism. 
