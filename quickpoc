@@ -225,15 +225,15 @@ do
    # Passing a reliable RPC_URL (if one exists in config) solves this problem.
    [[ ! -z "$RPC_URL" ]] && CAST_RPC_OVERRIDE="--rpc-url $RPC_URL" 
 
-   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $CAST_RPC_OVERRIDE $1 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $CAST_RPC_OVERRIDE $CONTRACT 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
    proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
 
    if [ $proxy_impl == $ZERO_ADDRESS ] ; then
-      logic_contract=$1
-      data_contract=$1
+      logic_contract=$CONTRACT
+      data_contract=$CONTRACT
    else
       logic_contract=$proxy_impl
-      data_contract=$1
+      data_contract=$CONTRACT
    fi
 
    name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
