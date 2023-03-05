@@ -1,0 +1,254 @@
+#!/usr/bin/env bash
+
+#===== VARIABLES ======
+
+ZERO_ADDRESS=0x0000000000000000000000000000000000000000
+
+# ===== FUNCTIONS ======
+
+printHelp () {
+   echo "Options:"
+   echo -e "-n, --network \t\t network name supported by cast. Default: mainnet"
+   echo -e "-u, --rpc-url \t\t simulation RPC URL"
+   echo -e "-c, --config \t\t API keys config file. Default: ./conf"
+   echo -e "-k, --key \t\t block explorer API key. Default: etherscan API key"
+   echo -e "-o, --output \t\t output folder. Default: out"
+   echo -e "-h, --help, ? \t\t print this help message"
+}
+
+printUsage () {
+   echo "Usage: $0 [OPTION]... [CONTRACT-ADDRESS]..."
+}
+
+# param 1 - command to check
+checkCommandExists () {
+   if ! command -v $1 > /dev/null ; then
+      echo "Command $1 not found, please install it before using this tool"
+      exit 1
+   fi
+}
+
+# has to be called after all config is resolved
+# param 1 - contract address
+# param 2 - folder name
+downloadSmartContract () {
+   contract_address=$1
+
+   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${contract_address}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
+
+   if [ -z $2 ]; then
+      folder=$name
+   else
+      folder=$2
+   fi
+
+   if [ -d ${folder} ]; then
+      echo "error: already folder named $name - enter a custom name as a second arg"
+      exit 1
+   fi
+
+   forge init $folder --no-commit
+   cd $folder
+   rm -rf script
+   rm -rf src
+   rm test/Counter.t.sol
+
+   cast etherscan-source -c $NETWORK -d src --etherscan-api-key $BLOCK_EXPLORER_API_KEY $contract_address
+
+   forge remappings > remappings.txt
+   for library in $(ls src/${name})
+   do
+      if [ $library != contracts ]
+      then
+         echo "${library}/=src/${name}/${library}/" >> remappings.txt
+      fi
+   done
+
+
+   cat << EOF >> test/POC.t.sol
+// SPDX-License-Identifier: MIT
+pragma solidity ^0.8.0;
+
+import "forge-std/Test.sol";
+EOF
+
+   for file in $(find src/${name}/contracts -name '*.sol')
+   do
+      echo "import \"../$file\";" >> test/POC.t.sol
+   done
+
+   cat << EOF >> test/POC.t.sol
+
+// Foundry cheatsheet: https://github.com/foundry-rs/foundry/blob/master/forge/README.md#cheat-codes
+// Foundry doc: https://book.getfoundry.sh
+
+contract ${name}POC is Test {
+   ${name} c = ${name}($data_contract);
+
+   function test${name}POC() public {
+      vm.createSelectFork('${RPC_URL}');
+      assert(address(c) == $data_contract);
+   }
+}
+EOF
+
+   git add . > /dev/null
+   git commit -m 'initial setup' > /dev/null
+
+   cd ..
+}
+
+# has to be called after all config is resolved
+# it's assumed that it's called after `downloadSmartContract` function and "name" is set
+function graphSmartContract () {
+   cd $folder
+   mkdir assets
+
+   LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
+   surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
+
+   if [ -z "${NETWORK_TO_SOL2UML[$NETWORK]}" ]; then
+      echo "Sol2UML is not supported for $NETWORK. Storage layout and class diagram won't be created"
+   else
+      sol2uml class -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-UML.svg $contract_address
+      sol2uml storage -n ${NETWORK_TO_SOL2UML[$NETWORK]} -k $BLOCK_EXPLORER_API_KEY -o assets/${name}-storage.svg $contract_address
+   fi
+
+   git add . > /dev/null > /dev/null
+   git commit -m 'adding graphs' > /dev/null
+
+   cd ..
+}
+
+# ====== CHECKS ======
+
+checkCommandExists jq
+checkCommandExists forge
+checkCommandExists cast
+checkCommandExists curl
+checkCommandExists surya
+checkCommandExists dot
+checkCommandExists sol2uml
+
+# ===== ITERATING OVER ARGS =====
+
+POSITIONAL_ARGS=()
+NETWORK=mainnet
+CONFIG_FILE="$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )/conf"
+OUTPUT_FOLDER=out
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -n|--network)
+      NETWORK="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -c|--config)
+      CONFIG_FILE="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -u|--rpc-url)
+      RPC_URL="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -k|--key)
+      BLOCK_EXPLORER_API_KEY="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -h|--help|?)
+      printUsage
+      printHelp
+      exit 0
+      ;;
+    -o|--output)
+      OUTPUT_FOLDER="$2"
+      shift # past argument
+      shift # past value
+      ;;
+#    --default) # example of how to add single param options
+#      DEFAULT=YES
+#      shift # past argument
+#      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
+source $CONFIG_FILE # load user config
+
+# ===== CHECKS =====
+
+if [ -z "$BLOCK_EXPLORER_API_KEY" ]; then
+   BLOCK_EXPLORER_API_KEY=${NETWORK_TO_KEY[$NETWORK]}
+
+   if [ -z "$BLOCK_EXPLORER_API_KEY" ]; then
+      echo "Unknown network passed. Please refer to cast documentation for a list of supported chains."
+      exit 1
+   fi
+fi
+
+if [ -z "$RPC_URL" ]; then
+   if [ -z "${NETWORK_TO_RPC_URL[$NETWORK]}" ]; then
+      echo -e "\nWarning. You don't have $NETWORK RPC URL specified in $CONFIG_FILE nor input parameter. It will be set to empty in a POC test file. Please add it manually later\n"
+   else
+      RPC_URL="${NETWORK_TO_RPC_URL[$NETWORK]}" 
+   fi
+fi
+
+
+# ===== ITERATE OVER PARAMS =====
+
+mkdir -p $OUTPUT_FOLDER
+cd $OUTPUT_FOLDER
+
+for CONTRACT in $@
+do
+   if [ "${CONTRACT:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
+      echo "Unexpected param. Expected contract address (0x...)"
+      exit 1
+   fi
+   echo "Working on $CONTRACT"
+
+   # For some chains like BSC, it's possible that cast will, for some reason, return false results.
+   # Passing a reliable RPC_URL (if one exists in config) solves this problem.
+   [[ ! -z "$RPC_URL" ]] && CAST_RPC_OVERRIDE="--rpc-url $RPC_URL" 
+
+   proxy_storage_value=$(cast storage --chain $NETWORK -e ${NETWORK_TO_KEY[$NETWORK]} $CAST_RPC_OVERRIDE $CONTRACT 0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc)
+   proxy_impl=$(cast --abi-decode "sig()(address)" $proxy_storage_value)
+
+   if [ $proxy_impl == $ZERO_ADDRESS ] ; then
+      logic_contract=$CONTRACT
+      data_contract=$CONTRACT
+   else
+      logic_contract=$proxy_impl
+      data_contract=$CONTRACT
+   fi
+
+   name=$(curl -s --location --request GET "${NETWORK_TO_URL[$NETWORK]}?module=contract&action=getsourcecode&address=${logic_contract}&apikey=${BLOCK_EXPLORER_API_KEY}" | jq -r '.result'[0].ContractName)
+
+   downloadSmartContract $logic_contract $name
+   graphSmartContract
+
+   if [ $logic_contract != $data_contract ]; then # if it's proxy contract, get it's code as well
+      name="$name-proxy"
+      downloadSmartContract $data_contract $name
+      graphSmartContract
+   fi
+done
+
+
+# ===== COPY NAME =====
+
+echo "cd ${name}" | pbcopy 
