@@ -16,26 +16,39 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 
 ## install
 
-0) on a UNIX machine with bash installed, install all dependencies:
+on a UNIX machine with bash installed, make sure you have all dependencies:
 - foundry ([follow instructions here](https://github.com/foundry-rs/foundry))
 - jq (`brew install jq`)
 
-1) clone this repo locally:
+clone this repo locally.
 
 ```bash
 git clone https://github.com/zobront/quickpoc.git
 ```
 
-2) set up two environment variables by calling the following from your terminal:
-- `export ETH_RPC_URL="..."`
-- `export ETHERSCAN_API_KEY="..."`
+set up two environment variables by calling the following from your terminal:
+```bash
+export ETH_RPC_URL="..."
+export ETHERSCAN_API_KEY="..."
+```
 
-4) add quickpoc to your path so it can be called from the command line:
-- `mkdir ~/.quickpoc && mkdir ~/.quickpoc/bin`
-- from within the cloned repo: `cp quickpoc ~/.quickpoc/bin/quickpoc`
-- open your bash run control file (for example, `~/.zshrc`) and add the following line: `export PATH="$PATH:/Users/{your_name}/.quickpoc/bin`
-- call `chmod +x ~/.quickpoc/bin/quickpoc` to make the file executable
-- you should then be able to call `quickpoc 0x..` from any folder to generate the POC folder within it.
+save quickpoc to a location you won't move it.
+```bash
+mkdir ~/.quickpoc && mkdir ~/.quickpoc/bin
+cp quickpoc ~/.quickpoc/bin/quickpoc # from within the cloned repo
+```
+
+add the following to your bash rc file.
+```bash
+export PATH="$PATH:/Users/{your_name}/.quickpoc/bin
+```
+
+make sure the file is executable.
+```bash
+chmod +x ~/.quickpoc/bin/quickpoc
+```
+
+you should then be able to call `quickpoc 0x..` from any folder to generate the POC folder within it.
 
 ## thank yous
 
