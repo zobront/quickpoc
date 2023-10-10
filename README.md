@@ -16,7 +16,7 @@ you can run `forge test` to confirm it's working, then go into `tests/POC.t.sol`
 
 ## install
 
-on a UNIX machine with bash installed, make sure you have all dependencies:
+on a unix machine with bash installed, make sure you have all dependencies:
 - foundry ([follow instructions here](https://github.com/foundry-rs/foundry))
 - jq (`brew install jq`)
 
@@ -52,4 +52,4 @@ you should then be able to call `quickpoc 0x..` from any folder to generate the 
 
 ## thank yous
 
-big thanks to [deliriusz](https://github.com/deliriusz) for adding graph viz tools, proxy checks, and professionalism.
+big thanks to [deliriusz](https://github.com/deliriusz) for adding proxy checks and professionalism. check out his fork [turbopoc](https://github.com/deliriusz/turbopoc) for a more full featured version.
