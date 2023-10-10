@@ -20,30 +20,30 @@ on a unix machine with bash installed, make sure you have all dependencies:
 - foundry ([follow instructions here](https://github.com/foundry-rs/foundry))
 - jq (`brew install jq`)
 
-clone this repo locally.
+clone this repo:
 
 ```bash
 git clone https://github.com/zobront/quickpoc.git
 ```
 
-set up two environment variables by calling the following from your terminal:
+set up two environment variables by calling the following from your terminal (or adding to your bash rc file):
 ```bash
 export ETH_RPC_URL="..."
 export ETHERSCAN_API_KEY="..."
 ```
 
-save quickpoc to a location you won't move it.
+save quickpoc to a location you won't move it:
 ```bash
 mkdir ~/.quickpoc && mkdir ~/.quickpoc/bin
-cp quickpoc ~/.quickpoc/bin/quickpoc # from within the cloned repo
+cp quickpoc ~/.quickpoc/bin/quickpoc # call from within the cloned repo
 ```
 
-add the following to your bash rc file.
+add the path to your bash rc file:
 ```bash
 export PATH="$PATH:/Users/{your_name}/.quickpoc/bin
 ```
 
-make sure the file is executable.
+make sure the file is executable:
 ```bash
 chmod +x ~/.quickpoc/bin/quickpoc
 ```
