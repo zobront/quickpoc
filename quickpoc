@@ -24,9 +24,6 @@ checkCommandExists jq
 checkCommandExists forge
 checkCommandExists cast
 checkCommandExists curl
-checkCommandExists surya
-checkCommandExists dot
-checkCommandExists sol2uml
 
 # if first 2 chars of $1 (contract name) don't start with "0x", fail
 if [ "${1:0:2}" != "0x" ] ; then
@@ -112,15 +109,6 @@ contract ${name}POC is Test {
   }
 }
 EOF
-
-# ===== GRAPHING =====
-
-mkdir assets
-
-LIST=$(find src -type f -name '*.sol') # glob expansion doesn't work here in Linux for some reason
-surya graph $LIST | dot -Tpng > assets/${name}-flow-graph.png
-sol2uml class -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-UML.svg $logic_contract
-sol2uml storage -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-storage.svg $logic_contract
 
 # ===== MISC =====
 
