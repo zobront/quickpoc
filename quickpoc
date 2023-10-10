@@ -28,7 +28,8 @@ checkCommandExists surya
 checkCommandExists dot
 checkCommandExists sol2uml
 
-if [ "${1:0:2}" != "0x" ] ; then #if first 2 chars of $1 (contract name) don't start with "0x", fail
+# if first 2 chars of $1 (contract name) don't start with "0x", fail
+if [ "${1:0:2}" != "0x" ] ; then
    printUsage
    exit 1
 fi
@@ -123,4 +124,4 @@ sol2uml storage -n mainnet -k $ETHERSCAN_API_KEY -o assets/${name}-storage.svg $
 
 # ===== MISC =====
 
-echo "cd ${name}" | pbcopy 
+echo "cd ${name}" | pbcopy
