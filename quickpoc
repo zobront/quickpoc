@@ -75,11 +75,12 @@ rm -rf script
 cast etherscan-source -d src --etherscan-api-key $ETHERSCAN_API_KEY $logic_contract
 
 forge remappings > remappings.txt
-for library in $(ls src/${name})
+for lib_path in $(ls -d src/${name}/*/)
 do
+    library=$(basename "$lib_path")
     if [ $library != contracts ]
         then
-            echo "${library}/=src/${name}/${library}/" >> remappings.txt
+            echo "${library}=src/${name}/${library}/" >> remappings.txt
     fi
 done
 

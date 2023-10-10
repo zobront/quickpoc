@@ -1,0 +1,6 @@
+[submodule "pepe/lib/forge-std"]
+	path = pepe/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "pigs/lib/forge-std"]
+	path = pigs/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
