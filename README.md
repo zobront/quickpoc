@@ -40,7 +40,7 @@ cp quickpoc ~/.quickpoc/bin/quickpoc # call from within the cloned repo
 
 add the path to your bash rc file:
 ```bash
-export PATH="$PATH:/Users/{your_name}/.quickpoc/bin
+export PATH="$PATH:/Users/{your_name}/.quickpoc/bin"
 ```
 
 make sure the file is executable:
